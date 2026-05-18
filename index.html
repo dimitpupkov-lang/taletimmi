@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тимми и Волшебное Зёрнышко — Интерактивная Книга</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons для красивых иконок -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Comfortaa:wght@400;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap');
+
+        body {
+            font-family: 'Lora', serif;
+            background-color: #150f0b;
+            background-image: radial-gradient(#2c221a 1px, transparent 1px), radial-gradient(#2c221a 1px, #0f0a07 1px);
+            background-size: 32px 32px;
+            background-position: 0 0, 16px 16px;
+            color: #3e2723;
+            overflow-x: hidden;
+        }
+
+        .handwritten {
+            font-family: 'Caveat', cursive;
+        }
+
+        .title-font {
+            font-family: 'Comfortaa', display;
+        }
+
+        /* 3D Книга и развороты страниц */
+        .book-container {
+            perspective: 1600px;
+        }
+
+        .book {
+            position: relative;
+            width: 100%;
+            max-width: 1000px;
+            height: 600px;
+            transition: transform 0.5s;
+            transform-style: preserve-3d;
+        }
+
+        .page {
+            position: absolute;
+            width: 50%;
+            height: 100%;
+            top: 0;
+            left: 50%;
+            transform-origin: left center;
+            transition: transform 0.8s cubic-bezier(0.645, 0.045, 0.355, 1);
+            transform-style: preserve-3d;
+            z-index: 1;
+        }
+
+        /* Лицевая и оборотная стороны листа */
+        .page-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            backface-visibility: hidden;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: inset 0 0 35px rgba(139, 94, 60, 0.12), 4px 4px 12px rgba(0, 0, 0, 0.25);
+            border-radius: 4px 12px 12px 4px;
+            background: #fdf7e7; /* Благородный оттенок старой бумаги */
+            background-image: radial-gradient(rgba(139, 94, 60, 0.03) 1px, transparent 0);
+            background-size: 20px 20px;
+        }
+
+        .page-face.back {
+            transform: rotateY(180deg);
+            border-radius: 12px 4px 4px 12px;
+            box-shadow: inset 0 0 35px rgba(139, 94, 60, 0.12), -4px 4px 12px rgba(0, 0, 0, 0.25);
+        }
+
+        /* Центральный шов переплета */
+        .book::before {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: calc(100% + 8px);
+            left: calc(50% - 10px);
+            top: -4px;
+            background: linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.35) 30%, rgba(0,0,0,0.6) 50%, rgba(0,0,0,0.35) 70%, rgba(0,0,0,0) 100%);
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        /* Состояния перелистывания страниц */
+        .page.flipped {
+            transform: rotateY(-180deg);
+            z-index: 10;
+        }
+
+        .page.active-z {
+            z-index: 20;
+        }
+
+        /* Декоративные винтажные уголки */
+        .corner-decor {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #c5a059;
+            pointer-events: none;
+            opacity: 0.45;
+        }
+        .top-left { top: 12px; left: 12px; border-right: none; border-bottom: none; }
+        .top-right { top: 12px; right: 12px; border-left: none; border-bottom: none; }
+        .bottom-left { bottom: 12px; left: 12px; border-right: none; border-top: none; }
+        .bottom-right { bottom: 12px; right: 12px; border-left: none; border-top: none; }
+
+        /* Кастомный скролл для текста */
+        .page-content::-webkit-scrollbar {
+            width: 4px;
+        }
+        .page-content::-webkit-scrollbar-track {
+            background: rgba(139, 94, 60, 0.03);
+        }
+        .page-content::-webkit-scrollbar-thumb {
+            background: rgba(139, 94, 60, 0.25);
+            border-radius: 2px;
+        }
+
+        /* Адаптивность для экранов мобильных устройств */
+        @media (max-width: 768px) {
+            .book-container {
+                perspective: none;
+            }
+            .book {
+                height: auto;
+                min-height: 520px;
+                display: flex;
+                flex-direction: column;
+            }
+            .page {
+                position: relative;
+                width: 100% !important;
+                height: auto !important;
+                left: 0 !important;
+                transform: none !important;
+                display: none;
+            }
+            .page.active-mobile {
+                display: block !important;
+            }
+            .page-face {
+                position: relative;
+                transform: none !important;
+                height: auto !important;
+                min-height: 480px;
+                border-radius: 12px;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+                padding: 1.25rem;
+            }
+            .page-face.back {
+                display: none; /* На мобильных выстраиваем страницы последовательно */
+            }
+            .book::before {
+                display: none;
+            }
+        }
+
+        @keyframes pulse-gold {
+            0%, 100% {
+                box-shadow: 0 0 12px #f1c40f, inset 0 0 8px #f39c12;
+                transform: scale(1);
+            }
+            50% {
+                box-shadow: 0 0 25px #f39c12, inset 0 0 15px #e67e22;
+                transform: scale(1.05);
+            }
+        }
+
+        .magic-grain-glow {
+            animation: pulse-gold 3s infinite ease-in-out;
+        }
+
+        /* Обложка книги */
+        .cover-page {
+            background: #3e2723;
+            background-image: radial-gradient(rgba(0,0,0,0.3) 1px, transparent 0), url('https://www.transparenttextures.com/patterns/leather.png');
+            color: #fdf5e6;
+            box-shadow: inset 0 0 40px rgba(0,0,0,0.7);
+            border: 6px double #c5a059;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between py-4 px-4">
+
+    <!-- Заголовок шапки -->
+    <header class="max-w-6xl w-full mx-auto flex flex-wrap justify-between items-center gap-3 mb-2 z-10">
+        <div class="flex items-center gap-2">
+            <span class="text-3xl text-amber-500 animate-pulse">✨</span>
+            <div>
+                <h1 class="title-font text-lg md:text-xl font-bold text-amber-100 tracking-wide">Тимми и Волшебное Зёрнышко</h1>
+                <p class="text-xs text-amber-400/80 font-mono">Интерактивное издание с иллюстрациями</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <!-- Звуковое сопровождение на Web Audio -->
+            <button id="musicBtn" onclick="toggleForestAmbiance()" class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-950/60 border border-amber-800/50 text-amber-200 hover:bg-amber-900/60 transition text-xs" title="Включить фоновые звуки природы">
+                <i data-lucide="volume-x" id="volumeIcon" class="w-4 h-4"></i>
+                <span class="hidden md:inline" id="musicStatus">Лесной шум</span>
+            </button>
+            
+            <button onclick="resetBook()" class="p-1.5 rounded-full bg-amber-950/60 border border-amber-800/50 text-amber-200 hover:bg-amber-900/60 transition" title="В начало">
+                <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Игровое поле/Книга -->
+    <main class="flex-grow flex items-center justify-center py-2 w-full max-w-6xl mx-auto">
+        <div class="book-container w-full flex justify-center items-center">
+            
+            <div class="book" id="fairytaleBook">
+                
+                <!-- ОБЛОЖКА -->
+                <div class="page z-[10]" id="page1">
+                    <div class="page-face cover-page justify-center items-center text-center p-6 gap-4">
+                        <div class="border border-dashed border-amber-500/30 p-4 md:p-8 rounded-lg flex flex-col items-center justify-center gap-3 w-full h-full relative">
+                            <div class="absolute -top-3 px-3 bg-[#3e2723] text-[10px] uppercase tracking-widest text-amber-400">Лесные легенды</div>
+                            
+                            <!-- Силуэт маленького мышонка Тимми -->
+                            <div class="w-20 h-20 rounded-full bg-amber-500/10 flex items-center justify-center border border-amber-500/20 magic-grain-glow my-2">
+                                <svg class="w-12 h-12 text-amber-400" viewBox="0 0 64 64" fill="currentColor">
+                                    <circle cx="22" cy="24" r="10" fill="none" stroke="currentColor" stroke-width="3" />
+                                    <circle cx="22" cy="24" r="6" fill="currentColor" opacity="0.4" />
+                                    <circle cx="42" cy="24" r="10" fill="none" stroke="currentColor" stroke-width="3" />
+                                    <circle cx="42" cy="24" r="6" fill="currentColor" opacity="0.4" />
+                                    <path d="M 32,22 C 24,22 18,30 18,40 C 18,50 25,52 32,52 C 39,52 46,50 46,40 C 46,30 40,22 32,22 Z" fill="currentColor" />
+                                    <circle cx="27" cy="36" r="2.5" fill="#3e2723" />
+                                    <circle cx="37" cy="36" r="2.5" fill="#3e2723" />
+                                    <polygon points="32,42 29,40 35,40" fill="#f8a5c2" />
+                                    <!-- Усики -->
+                                    <line x1="14" y1="43" x2="24" y2="42" stroke="currentColor" stroke-width="1.5" />
+                                    <line x1="12" y1="47" x2="23" y2="44" stroke="currentColor" stroke-width="1.5" />
+                                    <line x1="50" y1="43" x2="40" y2="42" stroke="currentColor" stroke-width="1.5" />
+                                    <line x1="52" y1="47" x2="41" y2="44" stroke="currentColor" stroke-width="1.5" />
+                                    <!-- Волшебная звёздочка над лапками -->
+                                    <path d="M 32,10 L 33,13 L 36,13 L 34,15 L 35,18 L 32,16 L 29,18 L 30,15 L 28,13 L 31,13 Z" fill="#fff" />
+                                </svg>
+                            </div>
+                            
+                            <h2 class="title-font text-2xl md:text-4xl font-extrabold text-amber-200 leading-tight">Тимми</h2>
+                            <p class="text-sm md:text-base text-amber-300 font-serif italic">и Волшебное Зёрнышко</p>
+                            
+                            <div class="w-16 h-[1px] bg-amber-500/20 my-1"></div>
+                            
+                            <p class="text-[10px] text-amber-300/70 uppercase tracking-widest max-w-xs leading-relaxed">Добрая история о мышонке с крошечным ростом, но огромным сердцем</p>
+                            
+                            <div class="mt-4 flex flex-col items-center gap-1">
+                                <span class="text-xs text-amber-400/80">Открыть книгу</span>
+                                <i data-lucide="arrow-right" class="w-4 h-4 text-amber-400 animate-bounce"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Страница посвящения (Форзац) -->
+                    <div class="page-face back p-6 justify-between text-center">
+                        <div class="corner-decor top-left"></div><div class="corner-decor top-right"></div>
+                        <div class="corner-decor bottom-left"></div><div class="corner-decor bottom-right"></div>
+                        
+                        <div class="my-auto flex flex-col gap-3">
+                            <span class="text-3xl">📜</span>
+                            <h3 class="title-font text-xl font-bold text-amber-900">Посвящение</h3>
+                            <p class="text-amber-800/90 italic leading-relaxed text-xs md:text-sm max-w-md mx-auto">
+                                «Всем маленьким искателям приключений, которые боятся сделать первый шаг. Помните: даже самое крошечное зёрнышко может вырасти в великое чудо, если подарить ему тепло своего сердца».
+                            </p>
+                        </div>
+                        <div class="flex justify-between items-center text-[10px] text-amber-700/60 w-full pt-3 border-t border-amber-900/10">
+                            <span>Вступление</span>
+                            <span>Лист 1</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- СТРАНИЦА 1: ГЛАВА 1. НЕОЖИДАННАЯ НАХОДКА -->
+                <div class="page z-[9]" id="page2">
+                    <div class="page-face p-6 justify-between">
+                        <div class="corner-decor top-left"></div><div class="corner-decor top-right"></div>
+                        <div class="corner-decor bottom-left"></div><div class="corner-decor bottom-right"></div>
+                        
+                        <div class="flex flex-col gap-3 h-full justify-between">
+                            <div>
+                                <div class="flex justify-between items-center border-b border-amber-900/10 pb-1.5 mb-2">
+                                    <span class="text-[10px] uppercase tracking-wider text-amber-800/60 font-semibold">Страница 1</span>
+                                    <span class="handwritten text-base text-amber-700 font-bold">Клад в старом сундуке</span>
+                                </div>
+                                <div class="overflow-y-auto page-content pr-1 max-h-[380px] text-xs md:text-sm leading-relaxed text-amber-950/90 text-justify">
+                                    <p class="indent-4 mb-2">
+                                        Жил-был крошечный лесной мышонок по имени <strong>Тимми</strong>. Он был невероятно бережливым, педантичным и обожал во всём идеальный порядок.
+                                    </p>
+                                    <p class="indent-4 mb-2 text-amber-900 italic">
+                                        — Пять пылинок слева, четыре справа... Опять непорядок! — тихо бормотал мышонок, обметая веничком из сосновой хвои коврик в своей норке глубоко под корнями векового дуба.
+                                    </p>
+                                    <p class="indent-4 mb-2">
+                                        Его жизнь была подчинена строгому, незыблемому расписанию: утренний чай из лесной земляники, тщательная уборка, пересчёт запасов крупы и ягод. Тимми искренне верил, что за пределами его корней нет ничего хорошего — лишь опасные сквозняки, хищники и хаос.
+                                    </p>
+                                    <p class="indent-4">
+                                        Но во время большой уборки в самой дальней кладовой Тимми наткнулся на старый кованый сундучок дедушки. На самом дне, под ворохом ароматной сушеной лаванды, лежало странное крупное зёрнышко, сияющее ровным золотым светом...
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center pt-1.5 border-t border-amber-900/10 text-[10px] text-amber-700/60">
+                                <span class="font-bold">Глава I. Неожиданная находка</span>
+                                <span>Страница 1 из 8</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="page-face back p-4 justify-between bg-[#fbf3d8]">
+                        <div class="corner-decor top-left"></div><div class="corner-decor top-right"></div>
+                        <div class="corner-decor bottom-left"></div><div class="corner-decor bottom-right"></div>
+                        
+                        <div class="flex flex-col h-full justify-between items-center gap-1.5">
+                            <div class="flex justify-between items-center border-b border-amber-900/10 pb-1 w-full">
+                                <span class="text-[10px] uppercase tracking-wider text-amber-800/60 font-semibold">Иллюстрация 1</span>
+                                <span class="handwritten text-base text-amber-700 font-bold">Тайны кладовой</span>
+                            </div>
+                            
+                            <!-- Изображение 1 (Магия в кладовой) -->
+                            <div class="relative w-full max-h-[320px] rounded overflow-hidden border border-amber-900/10 shadow flex-grow">
+                                <img src="https://i.postimg.cc/pL7QPyRG/C191B5E1-EF0D-4029-951D-E4BE98B0F60B.png" alt="Магия в кладовой" class="w-full h-full object-cover">
+                            </div>
+                            
+                            <p class="text-[10px] text-amber-850 italic text-center px-2">
+                                Зёрнышко пульсировало тёплым золотым светом, согревая маленькие лапки мышонка.
+                            </p>
+                            
+                            <div class="w-full flex justify-between items-center pt-1 text-[10px] text-amber-700/60 border-t border-amber-900/10">
+                                <span class="font-bold">Глава I. Неожиданная находка</span>
+                                <span>Иллюстрация 1</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- СТРАНИЦА 2: ГЛАВА 1. ШАГ В НЕИЗВЕСТНОСТЬ -->
+                <div class="page z-[8]" id="page3">
+                    <div class="page-face p-6 justify-between">
+                        <div class="corner-decor top-left"></div><div class="corner-decor top-right"></div>
+                        <div class="corner-decor bottom-left"></div><div class="corner-decor bottom-right"></div>
+                        
+                        <div class="flex flex-col gap-3 h-full justify-between">
+                            <div>
+                                <div class="flex justify-between items-center border-b border-amber-900/10 pb-1.5 mb-2">
+                                    <span class="text-[10px] uppercase tracking-wider text-amber-800/60 font-semibold">Страница 2</span>
+                                    <span class="handwritten text-base text-amber-700 font-bold">Первый шаг за порог</span>
+                                </div>
+                                <div class="overflow-y-auto page-content pr-1 max-h-[380px] text-xs md:text-sm leading-relaxed text-amber-950/90 text-justify">
+                                    <p class="indent-4 mb-2">
+                                        Как только Тимми коснулся зёрнышка, по норке разлился аромат цветов, а на полках начали зеленеть старые сухие семена. Зёрнышко словно тихонечко гудело: <i>«Помоги мне... Вынеси меня к Солнцу...»</i>
+                                    </p>
+                                    <p class="indent-4 mb-2 text-amber-900 italic">
+                                        — Внешний мир? Ох... Там же холодные ветра! Острые клювы и грязные лапы! — Тимми вздрогнул, прижав ушки к голове. — Но дедушка всегда говорил, что магия леса угасает, когда мы прячемся по углам...
+                                    </p>
+                                    <p class="indent-4 mb-2">
+                                        Сердечко мышонка бешено колотилось от одной мысли о выходе наружу. Но зёрнышко просило о помощи так жалобно, что Тимми не выдержал.
+                                    </p>
+                                    <p class="indent-4">
+                                        Он аккуратно завязал дорожный узелок со своей любимой овсяной крупой, привязал его к веточке-посоху, глубоко вздохнул и робко переступил порог своей тёмной норки навстречу сияющему утру...
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center pt-1.5 border-t border-amber-900/10 text-[10px] text-amber-700/60">
+                                <span class="font-bold">Глава I. Неожиданная находка</span>
+                                <span>Страница 2 из 8</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="page-face back p-4 justify-between bg-[#fbf3d8]">
+                        <div class="corner-decor top-left"></div><div class="corner-decor top-right"></div>
+                        <div class="corner-decor bottom-left"></div><div class="corner-decor bottom-right"></div>
+                        
+                        <div class="flex flex-col h-full justify-between items-center gap-1.5">
+                            <div class="flex justify-between items-center border-b border-amber-900/10 pb-1 w-full">
+                                <span class="text-[10px] uppercase tracking-wider text-amber-800/60 font-semibold">Иллюстрация 2</span>
+                                <span class="handwritten text-base text-amber-700 font-bold">Огромный новый мир</span>
+                            </div>
+                            
+                            <!-- Изображение 2 (Шаг в неизвестность) -->
+                            <div class="relative w-full max-h-[320px] rounded overflow-hidden border border-amber-900/10 shadow flex-grow">
+                                <img src="https://i.postimg.cc/mDWQFqcz/0A90DFF0-6955-437D-8A05-BA08BA73B98F.png" alt="Шаг в неизвестность" class="w-full h-full object-cover">
+                            </div>
+                            
+                            <p class="text-[10px] text-amber-850 italic text-center px-2">
+                                Тимми робко переступает порог и впервые видит гигантские травинки и капли чистой росы.
+                            </p>
+                            
+                            <div class="w-full flex justify-between items-center pt-1 text-[10px] text-amber-700/60 border-t border-amber-900/10">
+                                <span class="font-bold">Глава I. Неожиданная находка</span>
+                                <span>Иллюстрация 2</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- СТРАНИЦА 3: ГЛАВА 2. ИСПЫТАНИЕ У РУЧЬЯ -->
+                <div class="page z-[7]" id="page4">
+                    <div class="page-face p-6 justify-between">
+                        <div class="corner-decor top-left"></div><div class="corner-decor top-right"></div>
+                        <div class="corner-decor bottom-left"></div><div class="corner-decor bottom-right"></div>
+                        
+                        <div class="flex flex-col gap-3 h-full justify-between">
+                            <div>
+                                <div class="flex justify-between items-center border-b border-amber-900/10 pb-1.5 mb-2">
+                                    <span class="text-[10px] uppercase tracking-wider text-amber-800/60 font-semibold">Страница 3</span>
+                                    <span class="handwritten text-base text-amber-700 font-bold">Подсказка золотого луча</span>
+                                </div>
+                                <div class="overflow-y-auto page-content pr-1 max-h-[380px] text-xs md:text-sm leading-relaxed text-amber-950/90 text-justify">
+                                    <p class="indent-4 mb-2">
+                                        Мир за порогом ошеломил Тимми. Всё было огромным! Трава высилась над ним, словно вековые сосны. Вскоре тропинка вывела его к ручью, где единственный мостик лежал разбитым. На берегу сидел большой Бобёр Захар.
+                                    </p>
+                                    <p class="indent-4 mb-2 text-amber-900 italic">
+                                        — Ну вот, докатился! Чертежи намокли, складной метр забился песком, а мост отремонтировать не из чего! — Захар схватился за голову и уныло захлопал широким плоским хвостом. — Всю поросль рубить запрещено, а сухой древесины на мили вокруг нет!
+                                    </p>
+                                    <p class="indent-4 mb-2 text-amber-950">
+                                        Тимми сначала испугался большого зверя и хотел юркнуть под лист папоротника, но дедушкино зёрнышко вдруг запульсировало сильнее. Оно прямо-таки подтолкнуло мышонка вперёд.
+                                    </p>
+                                    <p class="indent-4">
+                                        — Здравствуй...те, дядя Бобёр, — робко пропищал Тимми, выходя из травы. — Может, это... поможет? — И он протянул светящееся зёрнышко...
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center pt-1.5 border-t border-amber-900/10 text-[10px] text-amber-700/60">
+                                <span class="font-bold">Глава II. Испытание у лесного ручья</span>
+                                <span>Страница 3 из 8</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="page-face back p-4 justify-between bg-[#fbf3d8]">
+                        <div class="corner-decor top-left"></div><div class="corner-decor top-right"></div>
+                        <div class="corner-decor bottom-left"></div><div class="corner-decor bottom-right"></div>
+                        
+                        <div class="flex flex-col h-full justify-between items-center gap-1.5">
+                            <div class="flex justify-between items-center border-b border-amber-900/10 pb-1 w-full">
+                                <span class="text-[10px] uppercase tracking-wider text-amber-800/60 font-semibold">Иллюстрация 3</span>
+                                <span class="handwritten text-base text-amber-700 font-bold">Находка в папоротниках</span>
+                            </div>
+                            
+                            <!-- Изображение 3 (Подсказка зёрнышка) -->
+                            <div class="relative w-full max-h-[320px] rounded overflow-hidden border border-amber-900/10 shadow flex-grow">
+                                <img src="https://i.postimg.cc/VvYnKCWJ/E7A7E233-5C85-4368-BAB4-86297E16BDEC.png" alt="Подсказка зёрнышка" class="w-full h-full object-cover">
+                            </div>
+                            
+                            <p class="text-[10px] text-amber-850 italic text-center px-2">
+                                Золотистый луч зёрнышка указывает унывающему Бобру на скрытую в зарослях прочную сухую корягу.
+                            </p>
+                            
+                            <div class="w-full flex justify-between items-center pt-1 text-[10px] text-amber-700/60 border-t border-amber-900/10">
+                                <span class="font-bold">Глава II. Испытание у лесного ручья</span>
+                                <span>Иллюстрация 3</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- СТРАНИЦА 4: ГЛАВА 2. ВЕСЕЛАЯ ПЕРЕПРАВА -->
+                <div class="page z-[6]" id="page5">
+                    <div class="page-face p-6 justify-between">
+                        <div class="corner-decor top-left"></div><div class="corner-decor top-right"></div>
+                        <div class="corner-decor bottom-left"></div><div class="corner-decor bottom-right"></div>
+                        
+                        <div class="flex flex-col gap-3 h-full justify-between">
+                            <div>
+                                <div class="flex justify-between items-center border-b border-amber-900/10 pb-1.5 mb-2">
+                                    <span class="text-[10px] uppercase tracking-wider text-amber-800/60 font-semibold">Страница 4</span>
+                                    <span class="handwritten text-base text-amber-700 font-bold">Весёлые брызги реки</span>
+                                </div>
+                                <div class="overflow-y-auto page-content pr-1 max-h-[380px] text-xs md:text-sm leading-relaxed text-amber-950/90 text-justify">
+                                    <p class="indent-4 mb-2">
+                                        Луч золотого света упал в чащу папоротников, высветив огромную старую корягу. Бобёр Захар подпрыгнул от радости:
+                                    </p>
+                                    <p class="indent-4 mb-2 text-amber-900 italic">
+                                        — Клянусь речным илом, это же идеальное бревно! Малыш, да ты настоящий кладоискатель!
+                                    </p>
+                                    <p class="indent-4 mb-2">
+                                        Они принялись за работу. Захар ловко тесал бревно своей пилой, а Тимми благодаря своей педантичности и маленькому росту забирался в самые мелкие щели, начисто убирая речной песок и мешающие щепки.
+                                    </p>
+                                    <p class="indent-4 mb-2 text-amber-900 italic">
+                                        — Ну надо же, какая точность! У тебя глаз-алмаз, малец! Мой мост теперь простоит сто лет! — восхищался бобёр, усаживая уставшего мышонка на свой широкий хвост, словно на царское сиденье.
+                                    </p>
+                                    <p class="indent-4">
+                                        Тимми держался за узелок, зажмурившись от летящих брызг и заливисто смеясь. Впервые в жизни он понял, что его любовь к порядку может приносить огромную пользу.
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center pt-1.5 border-t border-amber-900/10 text-[10px] text-amber-700/60">
+                                <span class="font-bold">Глава II. Испытание у лесного ручья</span>
+                                <span>Страница 4 из 8</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="page-face back p-4 justify-between bg-[#fbf3d8]">
+                        <div class="corner-decor top-left"></div><div class="corner-decor top-right"></div>
+                        <div class="corner-decor bottom-left"></div><div class="corner-decor bottom-right"></div>
+                        
+                        <div class="flex flex-col h-full justify-between items-center gap-1.5">
+                            <div class="flex justify-between items-center border-b border-amber-900/10 pb-1 w-full">
+                                <span class="text-[10px] uppercase tracking-wider text-amber-800/60 font-semibold">Иллюстрация 4</span>
+                                <span class="handwritten text-base text-amber-700 font-bold">Сплав на бобровом хвосте</span>
+                            </div>
+                            
+                            <!-- Изображение 4 (Веселая переправа) -->
+                            <div class="relative w-full max-h-[320px] rounded overflow-hidden border border-amber-900/10 shadow flex-grow">
+                                <img src="https://i.postimg.cc/mZwQtmTH/C5EF7544-7828-4323-8620-763FFA1FDA8A.png" alt="Веселая переправа" class="w-full h-full object-cover">
+                            </div>
+                            
+                            <p class="text-[10px] text-amber-850 italic text-center px-2">
+                                Тимми зажмурился от восторга, пока весёлый Бобёр нёс его по бурлящим речным волнам.
+                            </p>
+                            
+                            <div class="w-full flex justify-between items-center pt-1 text-[10px] text-amber-700/60 border-t border-amber-900/10">
+                                <span class="font-bold">Глава II. Испытание у лесного ручья</span>
+                                <span>Иллюстрация 4</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- СТРАНИЦА 5: ГЛАВА 3. ТУМАННЫЕ ЗАГАДКИ -->
+                <div class="page z-[5]" id="page6">
+                    <div class="page-face p-6 justify-between">
+                        <div class="corner-decor top-left"></div><div class="corner-decor top-right"></div>
+                        <div class="corner-decor bottom-left"></div><div class="corner-decor bottom-right"></div>
+                        
+                        <div class="flex flex-col gap-3 h-full justify-between">
+                            <div>
+                                <div class="flex justify-between items-center border-b border-amber-900/10 pb-1.5 mb-2">
+                                    <span class="text-[10px] uppercase tracking-wider text-amber-800/60 font-semibold">Страница 5</span>
+                                    <span class="handwritten text-base text-amber-700 font-bold">Страхи во мгле</span>
+                                </div>
+                                <div class="overflow-y-auto page-content pr-1 max-h-[380px] text-xs md:text-sm leading-relaxed text-amber-950/90 text-justify">
+                                    <p class="indent-4 mb-2">
+                                        После переправы тропинка увела Тимми вглубь леса, где огромные, мрачные ели смыкали свои лапы. Внезапно с низин наполз холодный, густой, молочно-белый туман. Он поглотил тропинку, а вокруг раздался зловещий треск ломающихся сучьев.
+                                    </p>
+                                    <p class="indent-4 mb-2 text-amber-900 italic">
+                                        — Ой-ёй... Кто здесь? Зачем я ушел из своей норки? Сидел бы сейчас дома, пил земляничный чай, — шёпотом плакал Тимми, прижавшись спиной к корявому корню.
+                                    </p>
+                                    <p class="indent-4 mb-2">
+                                        Ему казалось, что из серой мглы на него смотрят чьи-то голодные глаза. Но когда отчаяние почти победило, он вспомнил слова дедушки: <i>«В темноте не плачут, а зажигают огонь»</i>.
+                                    </p>
+                                    <p class="indent-4">
+                                        Тимми достал зёрнышко из кармашка и изо всех сил высоко поднял его над головой обеими лапками. Золотой луч мгновенно разорвал пелену тумана, согрев маленького дрожащего мышонка...
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center pt-1.5 border-t border-amber-900/10 text-[10px] text-amber-700/60">
+                                <span class="font-bold">Глава III. Туманные загадки Мудрой Совы</span>
+                                <span>Страница 5 из 8</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="page-face back p-4 justify-between bg-[#fbf3d8]">
+                        <div class="corner-decor top-left"></div><div class="corner-decor top-right"></div>
+                        <div class="corner-decor bottom-left"></div><div class="corner-decor bottom-right"></div>
+                        
+                        <div class="flex flex-col h-full justify-between items-center gap-1.5">
+                            <div class="flex justify-between items-center border-b border-amber-900/10 pb-1 w-full">
+                                <span class="text-[10px] uppercase tracking-wider text-amber-800/60 font-semibold">Иллюстрация 5</span>
+                                <span class="handwritten text-base text-amber-700 font-bold">Один в тумане</span>
+                            </div>
+                            
+                            <!-- Изображение 5 (Маяк в тумане) -->
+                            <div class="relative w-full max-h-[320px] rounded overflow-hidden border border-amber-900/10 shadow flex-grow">
+                                <img src="https://i.postimg.cc/gkt8KrXz/91018406-C0BC-470F-84DD-BD36F112E9DA.png" alt="Маяк в тумане" class="w-full h-full object-cover">
+                            </div>
+                            
+                            <p class="text-[10px] text-amber-850 italic text-center px-2">
+                                Крошечный Тимми поднимает светящийся талисман, разгоняя холодную молочную мглу.
+                            </p>
+                            
+                            <div class="w-full flex justify-between items-center pt-1 text-[10px] text-amber-700/60 border-t border-amber-900/10">
+                                <span class="font-bold">Глава III. Туманные загадки Мудрой Совы</span>
+                                <span>Иллюстрация 5</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- СТРАНИЦА 6: ГЛАВА 3. УРОК СОВЫ -->
+                <div class="page z-[4]" id="page7">
+                    <div class="page-face p-6 justify-between">
+                        <div class="corner-decor top-left"></div><div class="corner-decor top-right"></div>
+                        <div class="corner-decor bottom-left"></div><div class="corner-decor bottom-right"></div>
+                        
+                        <div class="flex flex-col gap-3 h-full justify-between">
+                            <div>
+                                <div class="flex justify-between items-center border-b border-amber-900/10 pb-1.5 mb-2">
+                                    <span class="text-[10px] uppercase tracking-wider text-amber-800/60 font-semibold">Страница 6</span>
+                                    <span class="handwritten text-base text-amber-700 font-bold">Мудрое напутствие</span>
+                                </div>
+                                <div class="overflow-y-auto page-content pr-1 max-h-[380px] text-xs md:text-sm leading-relaxed text-amber-950/90 text-justify">
+                                    <p class="indent-4 mb-2">
+                                        Сверху раздался мягкий шорох перьев. На ветку над головой Тимми плавно опустилась большая пушистая серая Сова. На её клюве забавно сидели круглые медные очки.
+                                    </p>
+                                    <p class="indent-4 mb-2 text-amber-900 italic">
+                                        — Угу... Маленький мышонок в большом лесу, — с доброй улыбкой проухала Сова. — Почему твои глазки мокрые от слёз? Посмотри вокруг: твой свет уже победил туман.
+                                    </p>
+                                    <p class="indent-4 mb-2 text-amber-950">
+                                        — Но я... я такой крошечный, а мир такой страшный и холодный, — прошептал Тимми, шмыгнув носом.
+                                    </p>
+                                    <p class="indent-4 text-amber-900 italic">
+                                        — Огромным этот мир кажется лишь тогда, когда ты пытаешься пройти его в одиночку, малыш. Но погляди назад: ты уже обрел друга-бобра, а тепло твоего золотого зёрнышка согрело даже этот колючий туман. Иди смело, твоё сердце укажет дорогу.
+                                    </p>
+                                    <p class="indent-4">
+                                        Она величественно взмахнула правым крылом, указывая в сторону редеющей дымки, за которой брезжил золотой рассвет...
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center pt-1.5 border-t border-amber-900/10 text-[10px] text-amber-700/60">
+                                <span class="font-bold">Глава III. Туманные загадки Мудрой Совы</span>
+                                <span>Страница 6 из 8</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="page-face back p-4 justify-between bg-[#fbf3d8]">
+                        <div class="corner-decor top-left"></div><div class="corner-decor top-right"></div>
+                        <div class="corner-decor bottom-left"></div><div class="corner-decor bottom-right"></div>
+                        
+                        <div class="flex flex-col h-full justify-between items-center gap-1.5">
+                            <div class="flex justify-between items-center border-b border-amber-900/10 pb-1 w-full">
+                                <span class="text-[10px] uppercase tracking-wider text-amber-800/60 font-semibold">Иллюстрация 6</span>
+                                <span class="handwritten text-base text-amber-700 font-bold">Беседа на ветвях</span>
+                            </div>
+                            
+                            <!-- Изображение 6 (Урок Мудрой Совы) -->
+                            <div class="relative w-full max-h-[320px] rounded overflow-hidden border border-amber-900/10 shadow flex-grow">
+                                <img src="https://i.postimg.cc/6QnZw0H9/IMG-3869.jpg" alt="Урок Мудрой Совы" class="w-full h-full object-cover">
+                            </div>
+                            
+                            <p class="text-[10px] text-amber-850 italic text-center px-2">
+                                Умная Сова даёт совет Тимми и указывает крылом правильное направление к Солнечной поляне.
+                            </p>
+                            
+                            <div class="w-full flex justify-between items-center pt-1 text-[10px] text-amber-700/60 border-t border-amber-900/10">
+                                <span class="font-bold">Глава III. Туманные загадки Мудрой Совы</span>
+                                <span>Иллюстрация 6</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- СТРАНИЦА 7: ГЛАВА 4. ПОСАДКА ЧУДА -->
+                <div class="page z-[3]" id="page8">
+                    <div class="page-face p-6 justify-between">
+                        <div class="corner-decor top-left"></div><div class="corner-decor top-right"></div>
+                        <div class="corner-decor bottom-left"></div><div class="corner-decor bottom-right"></div>
+                        
+                        <div class="flex flex-col gap-3 h-full justify-between">
+                            <div>
+                                <div class="flex justify-between items-center border-b border-amber-900/10 pb-1.5 mb-2">
+                                    <span class="text-[10px] uppercase tracking-wider text-amber-800/60 font-semibold">Страница 7</span>
+                                    <span class="handwritten text-base text-amber-700 font-bold">Таинственный посев</span>
+                                </div>
+                                <div class="overflow-y-auto page-content pr-1 max-h-[380px] text-xs md:text-sm leading-relaxed text-amber-950/90 text-justify">
+                                    <p class="indent-4 mb-2">
+                                        Туман окончательно растаял, уступив место ласковому солнцу. Тимми наконец ступил на легендарную Солнечную поляну. Но она встретила его тишиной: земля была сухой и безжизненной, а нежные бутоны цветов поникли от долгой жажды.
+                                    </p>
+                                    <p class="indent-4 mb-2 text-amber-900 italic">
+                                        — Поляна ждала тебя, Тимми, — прошептал тёплый лесной ветерок.
+                                    </p>
+                                    <p class="indent-4 mb-2">
+                                        Тимми прошёл в самый центр поляны, опустился на колени прямо на мягкую тёплую землю и принялся бережно выкапывать крошечную лунку.
+                                    </p>
+                                    <p class="indent-4 mb-2 text-amber-900 italic font-semibold text-center">
+                                        — Пожалуйста, расти. Подари нашему лесу долгожданную радость и тепло, — шептал Тимми, аккуратно опуская золотое зёрнышко в землю.
+                                    </p>
+                                    <p class="indent-4">
+                                        Он засыпал ямку мягким чернозёмом, прижал лапками и замер в ожидании, чувствуя, как земля под его коленями начинает едва уловимо вибрировать и нагреваться...
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center pt-1.5 border-t border-amber-900/10 text-[10px] text-amber-700/60">
+                                <span class="font-bold">Глава IV. Финальное чудо на Солнечной поляне</span>
+                                <span>Страница 7 из 8</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="page-face back p-4 justify-between bg-[#fbf3d8]">
+                        <div class="corner-decor top-left"></div><div class="corner-decor top-right"></div>
+                        <div class="corner-decor bottom-left"></div><div class="corner-decor bottom-right"></div>
+                        
+                        <div class="flex flex-col h-full justify-between items-center gap-1.5">
+                            <div class="flex justify-between items-center border-b border-amber-900/10 pb-1 w-full">
+                                <span class="text-[10px] uppercase tracking-wider text-amber-800/60 font-semibold">Иллюстрация 7</span>
+                                <span class="handwritten text-base text-amber-700 font-bold">Обещание новой жизни</span>
+                            </div>
+                            
+                            <!-- Изображение 7 (Посадка чуда) -->
+                            <div class="relative w-full max-h-[320px] rounded overflow-hidden border border-amber-900/10 shadow flex-grow">
+                                <img src="https://i.postimg.cc/nzxDLD5g/IMG-3868.jpg" alt="Посадка чуда" class="w-full h-full object-cover">
+                            </div>
+                            
+                            <p class="text-[10px] text-amber-850 italic text-center px-2">
+                                Мышонок опускает золотое зёрнышко в лунку, его посох и скромный узелок лежат рядом в траве.
+                            </p>
+                            
+                            <div class="w-full flex justify-between items-center pt-1 text-[10px] text-amber-700/60 border-t border-amber-900/10">
+                                <span class="font-bold">Глава IV. Финальное чудо на Солнечной поляне</span>
+                                <span>Иллюстрация 7</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- СТРАНИЦА 8: ГЛАВА 4. ФИНАЛЬНОЕ ЧУДО -->
+                <div class="page z-[2]" id="page9">
+                    <div class="page-face p-6 justify-between">
+                        <div class="corner-decor top-left"></div><div class="corner-decor top-right"></div>
+                        <div class="corner-decor bottom-left"></div><div class="corner-decor bottom-right"></div>
+                        
+                        <div class="flex flex-col gap-3 h-full justify-between">
+                            <div>
+                                <div class="flex justify-between items-center border-b border-amber-900/10 pb-1.5 mb-2">
+                                    <span class="text-[10px] uppercase tracking-wider text-amber-800/60 font-semibold">Страница 8</span>
+                                    <span class="handwritten text-base text-amber-700 font-bold">Расцвет магии Леса</span>
+                                </div>
+                                <div class="overflow-y-auto page-content pr-1 max-h-[380px] text-xs md:text-sm leading-relaxed text-amber-950/90 text-justify">
+                                    <p class="indent-4 mb-2">
+                                        Земля под лапками Тимми озарилась ослепительным янтарным светом. Из лунки проклюнулся мощный зелёный росток. Прямо на глазах он устремился ввысь, превращаясь в огромный сказочный цветок с лепестками чистого, тёплого золота!
+                                    </p>
+                                    <p class="indent-4 mb-2">
+                                        Тёплая волшебная волна пронеслась по поляне. Пожухлая трава мгновенно налилась сочным изумрудным соком, распустились тысячи звонких колокольчиков, а воздух наполнился ароматами мёда и хвои.
+                                    </p>
+                                    <p class="indent-4 mb-2 text-amber-900 italic font-semibold">
+                                        — Ура! Мышонок сделал это! Наш лес спасён! — весело гремел подбежавший Бобёр Захар, размахивая своей кепкой.
+                                    </p>
+                                    <p class="indent-4">
+                                        Все лесные жители кружились в весёлом хороводе вокруг золотого цветка. Счастливый Тимми подбросил вверх свой маленький жилетик. Теперь он знал наверняка: не имеет никакого значения, насколько ты мал ростом — если в твоей груди бьётся по-настоящему смелое, чуткое и великое сердце!
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center pt-1.5 border-t border-amber-900/10 text-[10px] text-amber-700/60">
+                                <span class="font-bold">Глава IV. Финальное чудо на Солнечной поляне</span>
+                                <span>Страница 8 из 8</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="page-face back p-4 justify-between bg-[#fbf3d8]">
+                        <div class="corner-decor top-left"></div><div class="corner-decor top-right"></div>
+                        <div class="corner-decor bottom-left"></div><div class="corner-decor bottom-right"></div>
+                        
+                        <div class="flex flex-col h-full justify-between items-center gap-1.5">
+                            <div class="flex justify-between items-center border-b border-amber-900/10 pb-1 w-full">
+                                <span class="text-[10px] uppercase tracking-wider text-amber-800/60 font-semibold">Иллюстрация 8</span>
+                                <span class="handwritten text-base text-amber-700 font-bold">Счастливый лесной хоровод</span>
+                            </div>
+                            
+                            <!-- Изображение 8 (Триумф Тимми) -->
+                            <div class="relative w-full max-h-[320px] rounded overflow-hidden border border-amber-900/10 shadow flex-grow">
+                                <img src="https://i.postimg.cc/FzskyQhR/IMG-3870.png" alt="Триумф Тимми" class="w-full h-full object-cover">
+                            </div>
+                            
+                            <p class="text-[10px] text-amber-850 italic text-center px-2">
+                                Лесные звери празднуют победу и кружатся в хороводе вокруг чудесного золотого цветка.
+                            </p>
+                            
+                            <div class="w-full flex justify-between items-center pt-1 text-[10px] text-amber-700/60 border-t border-amber-900/10">
+                                <span class="font-bold">Глава IV. Финальное чудо на Солнечной поляне</span>
+                                <span>Иллюстрация 8</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ЗАДНЯЯ ОБЛОЖКА -->
+                <div class="page z-[1]" id="page10">
+                    <div class="page-face p-6 justify-between text-center">
+                        <div class="corner-decor top-left"></div><div class="corner-decor top-right"></div>
+                        <div class="corner-decor bottom-left"></div><div class="corner-decor bottom-right"></div>
+                        
+                        <div class="my-auto flex flex-col items-center gap-4">
+                            <span class="text-4xl animate-bounce">🌻</span>
+                            <h3 class="title-font text-2xl font-bold text-amber-950">Конец истории</h3>
+                            <p class="text-xs text-amber-850 max-w-sm leading-relaxed mx-auto">
+                                Спасибо, что прошли этот тёплый и сказочный путь вместе с храбрым мышонком Тимми!
+                            </p>
+                            <div class="flex flex-col gap-2 mt-2">
+                                <button onclick="resetBook()" class="px-5 py-2 bg-amber-800 text-amber-50 rounded-full font-semibold hover:bg-amber-900 transition shadow flex items-center gap-1.5 justify-center mx-auto text-xs">
+                                    <i data-lucide="book-open" class="w-3.5 h-3.5"></i> Читать сначала
+                                </button>
+                                <p class="text-[10px] text-amber-700/50">Автор сценария: Дмитрий Пупков & Gemini</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between items-center text-[10px] text-amber-700/60 w-full pt-3 border-t border-amber-900/10">
+                            <span>Эпилог</span>
+                            <span>Выпуск: Май 2026 г.</span>
+                        </div>
+                    </div>
+                    <div class="page-face back cover-page justify-center items-center p-6 text-center">
+                        <div class="border border-dashed border-amber-500/20 p-6 rounded-lg flex flex-col items-center justify-center gap-3 w-full h-full">
+                            <span class="text-3xl">🪵</span>
+                            <h4 class="title-font text-base font-semibold text-amber-300">Лесное Издательство</h4>
+                            <p class="text-[10px] text-amber-400/60 max-w-xs leading-relaxed">
+                                Отпечатано на экологичной крафтовой бумаге из сухих листьев под корнями старого дуба.
+                            </p>
+                            <div class="w-12 h-[1px] bg-amber-500/20 my-1"></div>
+                            <span class="text-[9px] text-amber-500/40 uppercase tracking-widest">Все права защищены</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Панель управления страницами -->
+    <footer class="max-w-xl w-full mx-auto flex flex-col items-center gap-2 z-10">
+        <div class="flex items-center justify-between w-full bg-amber-950/85 backdrop-blur-md px-6 py-2.5 rounded-full border border-amber-800/40 shadow-lg">
+            <button onclick="prevPage()" id="prevBtn" class="p-1.5 rounded-full hover:bg-amber-900/60 text-amber-200 transition disabled:opacity-30" disabled>
+                <i data-lucide="chevron-left" class="w-5 h-5"></i>
+            </button>
+            
+            <span class="text-amber-200 text-xs md:text-sm font-semibold tracking-wide" id="pageNumberDisplay">
+                Обложка
+            </span>
+            
+            <button onclick="nextPage()" id="nextBtn" class="p-1.5 rounded-full hover:bg-amber-900/60 text-amber-200 transition disabled:opacity-30">
+                <i data-lucide="chevron-right" class="w-5 h-5"></i>
+            </button>
+        </div>
+        
+        <p class="text-[10px] text-amber-400/50 text-center">
+            * Нажмите на край листа, используйте стрелки на клавиатуре или проведите пальцем для перелистывания.
+        </p>
+    </footer>
+
+    <script>
+        // Инициализация иконок
+        lucide.createIcons();
+
+        let currentPage = 1;
+        const totalPages = 10; // Обложка + 8 страниц сказки + Задняя обложка
+
+        // Настройка корректного отображения мобильного лейаута
+        function updateMobileLayout() {
+            if (window.innerWidth <= 768) {
+                for (let i = 1; i <= totalPages; i++) {
+                    const page = document.getElementById(`page${i}`);
+                    if (page) {
+                        page.classList.remove('active-mobile');
+                        if (i === currentPage) {
+                            page.classList.add('active-mobile');
+                        }
+                    }
+                }
+            }
+        }
+
+        // Клик вправо
+        function nextPage() {
+            if (currentPage < totalPages) {
+                if (window.innerWidth > 768) {
+                    const page = document.getElementById(`page${currentPage}`);
+                    if (page) {
+                        page.classList.add('flipped');
+                        page.classList.remove('active-z');
+                        setTimeout(() => {
+                            page.style.zIndex = currentPage;
+                        }, 250);
+                    }
+                }
+                currentPage++;
+                updateControls();
+            }
+        }
+
+        // Клик влево
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                if (window.innerWidth > 768) {
+                    const page = document.getElementById(`page${currentPage}`);
+                    if (page) {
+                        page.classList.remove('flipped');
+                        page.classList.add('active-z');
+                        page.style.zIndex = totalPages - currentPage + 10;
+                    }
+                }
+                updateControls();
+            }
+        }
+
+        // Сбросить в начало
+        function resetBook() {
+            for (let i = totalPages; i >= 1; i--) {
+                const page = document.getElementById(`page${i}`);
+                if (page) {
+                    page.classList.remove('flipped');
+                    page.classList.remove('active-z');
+                    page.style.zIndex = totalPages - i + 1;
+                }
+            }
+            currentPage = 1;
+            updateControls();
+        }
+
+        // Обновление подписей
+        function updateControls() {
+            document.getElementById('prevBtn').disabled = (currentPage === 1);
+            document.getElementById('nextBtn').disabled = (currentPage === totalPages);
+
+            const labels = {
+                1: "Обложка книги",
+                2: "Глава I: Находка (Стр. 1)",
+                3: "Глава I: Шаг в мир (Стр. 2)",
+                4: "Глава II: У ручья (Стр. 3)",
+                5: "Глава II: Переправа (Стр. 4)",
+                6: "Глава III: Свет во мгле (Стр. 5)",
+                7: "Глава III: Мудрость Совы (Стр. 6)",
+                8: "Глава IV: Великий сев (Стр. 7)",
+                9: "Глава IV: Пробуждение леса (Стр. 8)",
+                10: "Задняя обложка"
+            };
+            document.getElementById('pageNumberDisplay').innerText = labels[currentPage] || `Стр. ${currentPage}`;
+            updateMobileLayout();
+        }
+
+        document.querySelectorAll('.page').forEach((page, index) => {
+            page.addEventListener('click', (e) => {
+                if (window.innerWidth <= 768) return;
+                
+                const rect = page.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                
+                if (clickX > rect.width / 2) {
+                    nextPage();
+                } else {
+                    prevPage();
+                }
+            });
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') nextPage();
+            else if (e.key === 'ArrowLeft') prevPage();
+        });
+
+        let touchstartX = 0;
+        let touchendX = 0;
+        const bookEl = document.getElementById('fairytaleBook');
+        
+        bookEl.addEventListener('touchstart', e => {
+            touchstartX = e.changedTouches[0].screenX;
+        }, false);
+
+        bookEl.addEventListener('touchend', e => {
+            touchendX = e.changedTouches[0].screenX;
+            if (touchendX < touchstartX - 50) nextPage();
+            if (touchendX > touchstartX + 50) prevPage();
+        }, false);
+
+
+        // ==========================================
+        // СИНТЕЗАТОР ЗВУКОВ ПРИРОДЫ (WEB AUDIO API)
+        // ==========================================
+        let audioCtx = null;
+        let isAudioPlaying = false;
+        let windNode = null;
+        let birdsTimer = null;
+
+        function toggleForestAmbiance() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            if (isAudioPlaying) {
+                if (windNode) {
+                    try { windNode.stop(); } catch(e){}
+                    windNode = null;
+                }
+                if (birdsTimer) {
+                    clearInterval(birdsTimer);
+                    birdsTimer = null;
+                }
+                document.getElementById('volumeIcon').setAttribute('data-lucide', 'volume-x');
+                document.getElementById('musicStatus').innerText = "Лесной шум";
+                isAudioPlaying = false;
+            } else {
+                audioCtx.resume();
+                playWindNoise();
+                startBirdsSynthesizer();
+                document.getElementById('volumeIcon').setAttribute('data-lucide', 'volume-2');
+                document.getElementById('musicStatus').innerText = "Лесная тишина...";
+                isAudioPlaying = true;
+            }
+            lucide.createIcons();
+        }
+
+        function playWindNoise() {
+            const bufferSize = 2 * audioCtx.sampleRate;
+            const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const output = noiseBuffer.getChannelData(0);
+            
+            let b0, b1, b2, b3, b4, b5, b6;
+            b0 = b1 = b2 = b3 = b4 = b5 = b6 = 0.0;
+            
+            for (let i = 0; i < bufferSize; i++) {
+                const white = Math.random() * 2 - 1;
+                b0 = 0.99886 * b0 + white * 0.0555179;
+                b1 = 0.99332 * b1 + white * 0.0750759;
+                b2 = 0.96900 * b2 + white * 0.1538520;
+                b3 = 0.86650 * b3 + white * 0.3104856;
+                b4 = 0.55000 * b4 + white * 0.5329522;
+                b5 = -0.7616 * b5 - white * 0.0168980;
+                output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+                output[i] *= 0.05; 
+                b6 = white * 0.115926;
+            }
+
+            const whiteNoise = audioCtx.createBufferSource();
+            whiteNoise.buffer = noiseBuffer;
+            whiteNoise.loop = true;
+
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(220, audioCtx.currentTime);
+
+            const oscillator = audioCtx.createOscillator();
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(0.06, audioCtx.currentTime); 
+
+            const oscGain = audioCtx.createGain();
+            oscGain.gain.setValueAtTime(80, audioCtx.currentTime);
+
+            oscillator.connect(oscGain);
+            oscGain.connect(filter.frequency);
+            
+            whiteNoise.connect(filter);
+            filter.connect(audioCtx.destination);
+
+            oscillator.start();
+            whiteNoise.start();
+            windNode = whiteNoise;
+        }
+
+        function startBirdsSynthesizer() {
+            birdsTimer = setInterval(() => {
+                if (!isAudioPlaying) return;
+                if (Math.random() > 0.35) {
+                    playBirdChirp();
+                }
+            }, 3200);
+        }
+
+        function playBirdChirp() {
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            osc.type = 'sine';
+            const startFreq = 2200 + Math.random() * 600;
+            osc.frequency.setValueAtTime(startFreq, now);
+            osc.frequency.exponentialRampToValueAtTime(startFreq + 500, now + 0.06);
+            osc.frequency.exponentialRampToValueAtTime(startFreq - 200, now + 0.18);
+            
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(0.02, now + 0.03);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.start(now);
+            osc.stop(now + 0.25);
+        }
+
+        window.addEventListener('load', () => {
+            updateControls();
+        });
+
+        window.addEventListener('resize', () => {
+            updateControls();
+        });
+    </script>
+</body>
+</html>
